@@ -1,14 +1,27 @@
 图标
 ====
 
-`icon.svg` 为本仓库原创，按插件规范的线条风格手写，未用图片模型生成。从模板新建的插件换成自己的图标时，这里按实际情况重写。
+`icon.svg` 是 Zellij 的官方标志，取自上游仓库 [zellij-org/zellij](https://github.com/zellij-org/zellij) 的 `assets/logo.svg`：
+原样缩小、居中放到浅色方形底上，未改色、未变形。Zellij 与 Zellij 标志是 Zellij 项目的商标，本插件不是官方项目。
+底栏图标 `tabs/terminal.svg`、`tabs/terminal-fill.svg` 为本仓库原创。
 
 许可证
-------
+======
+
+插件包：MIT License，Copyright (c) 2026 geraldpeng6。全文见 [LICENSE](LICENSE)。
+
+镜像里的组件：
+
+- Zellij 0.45.1，MIT License，Copyright (c) 2024 Zellij Contributors，https://github.com/zellij-org/zellij/blob/main/LICENSE
+- nginx 1.31.7，BSD-2-Clause，https://nginx.org/LICENSE
+- Alpine Linux 基础镜像，各包按自己的许可证（bash 是 GPL-3.0-or-later，OpenSSH 是 BSD 风格，Apache 基础包是 Apache-2.0）
+
+Zellij 的许可证全文
+-------------------
 
 MIT License
 
-Copyright (c) 2026 Wonton plugin authors
+Copyright (c) 2024 Zellij Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
