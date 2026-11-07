@@ -1,0 +1,45 @@
+server {
+    listen 8080;
+
+    # 插件网络里的别的容器、出网插件都能直连这个端口。只认核心网关（安装时由核心给的地址，入口脚本替换进来），
+    # 它们带来的请求头一律不认；网关自己会先校验会话，Zellij 的令牌是第二道。
+    allow @CORE@;
+    deny all;
+
+    # 健康检查从容器内的回环进来：真的请求到 Zellij，不只是看进程还在。
+    location = /healthz {
+        allow 127.0.0.1;
+        allow ::1;
+        allow @CORE@;
+        deny all;
+        access_log off;
+        proxy_pass http://127.0.0.1:8082/info/version;
+    }
+
+    # 入口页：没有 Zellij 的会话 Cookie 时，/ 落到这里。页面在启动时由模板填进登录令牌和 SSH 公钥
+    # （nginx 1.31 的镜像没有 SSI 模块），令牌换了就重新生成。
+    location = /__wonton {
+        alias /tmp/landing.html;
+        # 入口路径没有扩展名，按扩展名猜不到类型；Chrome 收到 octet-stream 会当下载。
+        default_type "text/html; charset=utf-8";
+        add_header Cache-Control "no-store";
+    }
+
+    location / {
+        if ($signed_in = 0) {
+            rewrite ^/$ /__wonton last;
+        }
+        proxy_pass http://127.0.0.1:8082;
+        # WebSocket：Zellij 的终端和控制通道都走 Upgrade。
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        # 终端是长连接，空闲时也别掐。
+        proxy_read_timeout 1h;
+        proxy_send_timeout 1h;
+        proxy_buffering off;
+    }
+}

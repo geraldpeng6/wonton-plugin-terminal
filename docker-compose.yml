@@ -1,78 +1,85 @@
-# 示例插件：nginx 显示一个网页，向登录的人问好。改成自己的应用见 https://github.com/geraldpeng6/wonton-docs/blob/main/develop.md#写插件。
+name: terminal
+
 services:
+  # Zellij 的网页终端，前面是容器内的 nginx：Zellij 只听 127.0.0.1:8082，nginx 在 8080 上接核心网关的请求，
+  # 两者同一个网络命名空间。数据卷放 Zellij 的会话快照、令牌库和 SSH 密钥。
   web:
-    # 镜像按摘要固定（多架构镜像写清单列表的摘要），标签只给人看。
-    image: nginx:1.31.7-alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
+    image: ghcr.io/geraldpeng6/wonton-terminal:0.1.0
+    user: "${PUID}:${PGID}"
+    # ssh 到局域网主机、会话里跑的程序要出网：内部网络到不了外网和局域网。
+    # 声明 network.egress 后，核心的出口代理变量也会注入进来，ssh 自己不读它们，走直连。
     environment:
-      # 网关代登录：SSI 回显的 Remote-User 只信核心带来的。官方镜像启动时对 templates 目录里的
-      # *.template 做 envsubst，把下面的地址换进 nginx 配置（见 web/default.conf.template）。
-      WONTON_CORE_ADDRESS: ${WONTON_CORE_ADDRESS}
-    # 包里的文件经 configs 交给容器（核心在启动前写进去），不能用卷挂载。
-    configs:
-      - source: site
-        target: /etc/nginx/templates/default.conf.template
-      - source: page
-        target: /usr/share/nginx/html/index.html
-      - source: tokens
-        target: /usr/share/nginx/html/tokens.css
+      TZ: ${TZ}
+    volumes:
+      - ${WONTON_APP_DATA}/data:/data
+    # docker 自带的 tini：zellij 起的会话进程跟着它回收。
+    init: true
+    # 终端里可能跑构建这类长进程，给足会话数；进程数不设上限时一个 fork 循环能把宿主拖死。
+    pids_limit: 1024
+    # 停容器时先让 zellij 把会话存下来。
+    stop_grace_period: 20s
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      # 经 nginx 真的请求到 Zellij，nginx 或 Zellij 任一个没起来都会失败。
+      # 入口页是启动时生成的，页面没就绪不算健康。
+      test: ["CMD", "sh", "-c", "wget -q -O /dev/null http://127.0.0.1:8080/healthz && test -s /tmp/landing.html"]
       interval: 30s
       timeout: 5s
       start_period: 30s
       start_interval: 1s
 
-configs:
-  site:
-    file: web/default.conf.template
-  page:
-    file: web/index.html
-  tokens:
-    file: web/tokens.css
-
 x-wonton:
   spec: "0.6"
-  # 换成你自己的：反向域名形式，装上以后不能改。
-  id: app.example.hello
-  version: 0.1.1
+  id: dev.zellij.terminal
+  version: 0.1.0
   kind: app
-  title: { zh: 你好, en: Hello }
-  description: { zh: 向登录的人问好的示例网页, en: An example page that greets whoever is signed in }
+  title: { en: Zellij }
+  description:
+    zh: 在浏览器里打开服务器上的终端，也能 SSH 到局域网里的其他机器
+    en: A terminal on your server in the browser, and SSH to other machines on your LAN
   icon: icon.svg
   notices: [NOTICE]
-  screenshots: [screenshots/home.png]
-  author: { name: Example }
-  homepage: https://nginx.org
-  # 应用（这里是 nginx）的许可证；插件包自己的许可证写在仓库的 LICENSE 里。
-  license: BSD-2-Clause
+  screenshots: [screenshots/terminal.png, screenshots/landing.png]
+  author: { name: geraldpeng6, url: https://github.com/geraldpeng6 }
+  homepage: https://zellij.dev
+  license: MIT
   tags:
-    zh: [工具]
-    en: [Tools]
+    zh: [工具, 开发]
+    en: [Tools, Developer]
   about:
     zh: |
-      一个示例网页：登录以后，页面会向你问好。新建插件时可以照着改。
+      服务器上的终端，在浏览器里用。Zellij 自己管会话：切到别的 App、关掉页面都能接回原来的会话，会话断了也能恢复。
+      手机上有专门的界面：可滚动的终端、快捷键条、窗格和标签切换、屏幕键盘。
+
+      装好后第一次打开会给一条登录令牌和一个 SSH 公钥。令牌进终端用，也留给命令行客户端；
+      公钥加到局域网目标主机的 authorized_keys，就能从终端里 ssh 过去，主机指纹首次连接时自己核对。
+
+      容器里是普通用户，没有宿主 root，不带 Docker socket。
     en: |
-      An example page: once you are signed in, the page says hello. Copy it as a starting point for a new plugin.
-  release_notes: { zh: 名字和说明更新。, en: Product name and description update. }
+      A terminal on your server, in the browser. Zellij keeps the sessions itself: switching apps or closing the page
+      leads back to the same session, and exited sessions come back. The phone gets a dedicated interface: scrolling,
+      a key bar, pane and tab pickers, an on-screen keyboard.
+
+      The first open shows a login token and an SSH public key. The token gets you into the terminal and works with the
+      command line client; add the public key to authorized_keys on the LAN host and ssh to it from the terminal,
+      checking the host fingerprint on first connect.
+
+      The container runs an ordinary user, without host root or the Docker socket.
+  release_notes:
+    zh: 第一个版本：网页终端、会话恢复、局域网 SSH。
+    en: "First version: web terminal, session restore, LAN SSH."
   webui:
     service: web
-    port: 80
-    # 示例页回显网关注入的用户名，见 https://github.com/geraldpeng6/wonton-docs/blob/main/plugin-spec.md#网关代登录sso-proxy。
-    sso: proxy
-    proxy:
-      headers:
-        Remote-User: "{user}"
-  # 能放到底栏的页面，见 https://github.com/geraldpeng6/wonton-docs/blob/main/plugin-spec.md#底栏页面tabs。放不放由用户决定。
+    port: 8080
   tabs:
-    - id: home
-      title: { zh: 主页, en: Home }
-      icon: tabs/home.svg
-      icon_selected: tabs/home-fill.svg
+    - id: terminal
+      title: { zh: 终端, en: Terminal }
+      icon: tabs/terminal.svg
+      icon_selected: tabs/terminal-fill.svg
       path: /
-      # 这个页面没做适配，用默认的 inset：页面夹在 App 的栏中间，不会被挡。
-      # 想让内容从栏下滚过，写 layout: edge-to-edge，并用 --wonton-inset-* 留出栏的位置。
-  permissions: []
-  # 上游 nginx 官方镜像，amd64 和 arm64 都有；上游没写最低内存，按本机空闲实测取整（实测约 24M，取 64M）。
+      # 终端要整屏：全屏打开，内容由 App 让开状态栏和 Home 条（inset）。
+      display: fullscreen
+  permissions: [network.egress]
   requirements:
     arch: [amd64, arm64]
-    memory: 64M
+    # 空闲时约 30M，一个会话几十 M 起：按能开几个会话的余量给。
+    memory: 128M

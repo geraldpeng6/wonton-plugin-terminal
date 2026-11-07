@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>终端</title>
+<style>
+    :root {
+        color-scheme: light dark;
+        --bg: var(--color-background-primary, #f5f5f7);
+        --fg: var(--color-text-primary, #1d1d1f);
+        --muted: var(--color-text-secondary, #6e6e73);
+        --line: var(--color-border-primary, #d2d2d7);
+        --field: var(--color-background-secondary, #ffffff);
+        --accent: var(--wonton-accent-fill, #0071e3);
+        --accent-ink: var(--wonton-accent-ink-on-fill, #ffffff);
+        --radius: var(--border-radius-md, 10px);
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.45 var(--font-sans, -apple-system, system-ui, sans-serif);
+        padding: calc(var(--wonton-inset-top, 0px) + 24px) 20px calc(var(--wonton-inset-bottom, 0px) + 24px);
+    }
+    main { max-width: 32rem; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 24px; }
+    .label { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
+    .row { display: flex; gap: 8px; align-items: stretch; }
+    code {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+        background: var(--field);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        overflow-wrap: anywhere;
+        -webkit-user-select: all;
+        user-select: all;
+    }
+    button {
+        flex: none;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--field);
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+    }
+    button:active { opacity: .6; }
+    button:disabled { opacity: .4; cursor: default; }
+    #enter { background: var(--accent); border-color: transparent; color: var(--accent-ink); font-weight: 600; padding: 12px 18px; width: 100%; margin-top: 12px; }
+    #status { min-height: 1.45em; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+    #status.error { color: var(--color-text-danger, #d70015); }
+    details { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; }
+    summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+    details p { margin: 12px 0 8px; font-size: 13px; color: var(--muted); }
+    .hint { margin: 24px 0 0; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+    <h1>终端</h1>
+
+    <p class="label">登录令牌 · Login token</p>
+    <div class="row">
+        <code id="token">__TOKEN__</code>
+        <button id="copy" type="button">复制</button>
+    </div>
+    <button id="enter" type="button">进入</button>
+    <p id="status" role="status"></p>
+
+    <details>
+        <summary>SSH 公钥</summary>
+        <p>把这行加到目标主机的 <code style="padding:0;border:0;background:none">~/.ssh/authorized_keys</code>。私钥只在这个插件的卷里，首次连接时核对主机指纹。</p>
+        <div class="row">
+            <code id="pubkey">__PUBKEY__</code>
+            <button id="copy-key" type="button">复制</button>
+        </div>
+    </details>
+
+    <p class="hint">令牌丢了：重装插件会重新生成（会话数据保留）。</p>
+</main>
+<script>
+(function () {
+    "use strict";
+    var token = document.getElementById("token").textContent.trim();
+    var status = document.getElementById("status");
+    var enter = document.getElementById("enter");
+
+    function say(text, isError) {
+        status.textContent = text;
+        status.classList.toggle("error", Boolean(isError));
+    }
+
+    async function copy(id, button) {
+        var text = document.getElementById(id).textContent.trim();
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (e) {
+            var range = document.createRange();
+            range.selectNodeContents(document.getElementById(id));
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return;
+        }
+        var old = button.textContent;
+        button.textContent = "已复制";
+        setTimeout(function () { button.textContent = old; }, 1200);
+    }
+
+    document.getElementById("copy").addEventListener("click", function () {
+        copy("token", this);
+    });
+    document.getElementById("copy-key").addEventListener("click", function () {
+        copy("pubkey", this);
+    });
+
+    if (!token) {
+        enter.disabled = true;
+        say("正在初始化，稍后刷新这一页。");
+        return;
+    }
+
+    enter.addEventListener("click", async function () {
+        enter.disabled = true;
+        say("正在进入…");
+        try {
+            var response = await fetch("/command/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ auth_token: token, remember_me: true })
+            });
+            if (!response.ok) throw new Error(String(response.status));
+            location.replace("/");
+        } catch (e) {
+            enter.disabled = false;
+            say("登录没成功。令牌可能已失效：重新装一次插件会换新的。", true);
+        }
+    });
+}());
+</script>
+</body>
+</html>
