@@ -8,9 +8,9 @@ FROM nginx:1.31.7-alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d9
 
 ARG TARGETARCH
 ARG ZELLIJ_VERSION=0.45.1
-# 0.45.1 发行页 zellij-<target>-unknown-linux-musl.tar.gz 的摘要，逐架构一份。
+# 0.45.1 发行页 zellij-<target>-unknown-linux-musl.tar.gz 的摘要，逐架构一份（发行页另有一份 .sha256sum，算的是解包后的二进制，别混用）。
 ARG ZELLIJ_SHA256_AMD64=40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c3718eefc
-ARG ZELLIJ_SHA256_ARM64=2a2c0621e6f3b11ecbb05d66939a48000a2508604620aa20727a5fd61c49f451
+ARG ZELLIJ_SHA256_ARM64=05f0802afadd53f8db9514e7cae53c9ae8432fed1b35b8294aa816ee3044a16b
 
 # bash 是 Zellij 里的默认 shell（sh 没有补全和更好的行编辑），openssh-client 给局域网 SSH 用，curl 给入口脚本核对令牌。
 RUN apk add --no-cache bash openssh-client curl \

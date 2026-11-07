@@ -38,7 +38,7 @@ x-wonton:
     en: A terminal on your server in the browser, and SSH to other machines on your LAN
   icon: icon.svg
   notices: [NOTICE]
-  screenshots: [screenshots/terminal.png]
+  screenshots: [screenshots/terminal.png, screenshots/landing.png]
   author: { name: geraldpeng6, url: https://github.com/geraldpeng6 }
   homepage: https://zellij.dev
   license: MIT
