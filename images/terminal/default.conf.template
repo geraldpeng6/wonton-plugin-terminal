@@ -20,6 +20,8 @@ server {
     # （nginx 1.31 的镜像没有 SSI 模块），令牌换了就重新生成。
     location = /__wonton {
         alias /tmp/landing.html;
+        # 入口路径没有扩展名，按扩展名猜不到类型；Chrome 收到 octet-stream 会当下载。
+        default_type "text/html; charset=utf-8";
         add_header Cache-Control "no-store";
     }
 
