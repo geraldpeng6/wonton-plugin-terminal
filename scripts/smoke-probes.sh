@@ -12,7 +12,13 @@ identity_check() {
     [[ -n "$token" ]] || { echo "入口页里没有令牌：$(head -c 200 <<<"$page")"; return 1; }
     curl -sS --noproxy '*' -o /dev/null -f -H 'Content-Type: application/json' \
         -d "{\"auth_token\":\"$token\"}" "$SMOKE_WEB_URL/command/login" ||
-        { echo "页面里的令牌登录不了 Zellij"; return 1; }
+        {
+            echo "页面里的令牌登录不了 Zellij"
+            echo "页面令牌=$token"
+            docker exec -u 0 "$(web_container)" sh -c 'printf "文件令牌="; cat /data/state/token; echo; zellij web --list-tokens; printf "页面="; head -c 80 /tmp/landing.html' 2>&1
+            curl -sS --noproxy '*' -H 'Content-Type: application/json' -d "{\"auth_token\":\"$token\"}" "$SMOKE_WEB_URL/command/login" 2>&1
+            return 1
+        }
 }
 
 # 数据：令牌、SSH 密钥和会话快照都在插件卷里。写一条标记，同时记下当前令牌；重装、升级后都还在才算数。
