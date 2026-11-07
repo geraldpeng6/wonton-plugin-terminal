@@ -31,6 +31,9 @@ core=$(( (((a << 24) + (b << 16) + (c << 8) + d) & ~mask) + mask - 1 ))
 core_ip="$(( (core >> 24) & 255 )).$(( (core >> 16) & 255 )).$(( (core >> 8) & 255 )).$(( core & 255 ))"
 sed "s|@CORE@|$core_ip|" /opt/wonton/default.conf.template >/tmp/default.conf
 
+# 先备好令牌、密钥和入口页，健康检查一过页面就是可用的。
+/opt/wonton/init.sh
+
 nginx -e /dev/stderr -g 'daemon off;' &
 zellij web --start &
 zellij_pid=$!
@@ -44,10 +47,7 @@ until curl -fsS -o /dev/null http://127.0.0.1:8082/info/version; do
     sleep 1
 done
 
-/opt/wonton/init.sh
-# 入口页：把令牌和公钥填进模板。值里可能带 |，模板里的占位符不会。
-sed -e "s|__TOKEN__|$(cat /data/state/token)|" \
-    -e "s|__PUBKEY__|$(cat "$HOME/.ssh/id_ed25519.pub")|" \
-    /opt/wonton/landing.html >/tmp/landing.html
+# 起来以后核对令牌（可能被吊销过），换了就重填页面。
+/opt/wonton/init.sh --revalidate
 
 wait "$zellij_pid"

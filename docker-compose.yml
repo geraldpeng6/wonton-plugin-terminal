@@ -20,7 +20,8 @@ services:
     stop_grace_period: 20s
     healthcheck:
       # 经 nginx 真的请求到 Zellij，nginx 或 Zellij 任一个没起来都会失败。
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      # 入口页是启动时生成的，页面没就绪不算健康。
+      test: ["CMD", "sh", "-c", "wget -q -O /dev/null http://127.0.0.1:8080/healthz && test -s /tmp/landing.html"]
       interval: 30s
       timeout: 5s
       start_period: 30s
