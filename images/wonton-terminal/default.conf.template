@@ -18,16 +18,22 @@ server {
 
     # 入口页：没有 Zellij 的会话 Cookie 时，/ 落到这里。页面在启动时由模板填进登录令牌和 SSH 公钥
     # （nginx 1.31 的镜像没有 SSI 模块），令牌换了就重新生成。
-    location = /__wonton {
+    location = /wonton {
         alias /tmp/landing.html;
         # 入口路径没有扩展名，按扩展名猜不到类型；Chrome 收到 octet-stream 会当下载。
         default_type "text/html; charset=utf-8";
         add_header Cache-Control "no-store";
     }
 
+    # 入口页的后端：宿主地址、密钥、连接预检，只听容器内的回环。
+    location /wonton/api/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $http_host;
+    }
+
     location / {
         if ($signed_in = 0) {
-            rewrite ^/$ /__wonton last;
+            rewrite ^/$ /wonton last;
         }
         proxy_pass http://127.0.0.1:8082;
         # WebSocket：Zellij 的终端和控制通道都走 Upgrade。

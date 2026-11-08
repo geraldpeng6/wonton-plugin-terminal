@@ -13,7 +13,7 @@ ARG ZELLIJ_SHA256_AMD64=40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c
 ARG ZELLIJ_SHA256_ARM64=05f0802afadd53f8db9514e7cae53c9ae8432fed1b35b8294aa816ee3044a16b
 
 # bash 是 Zellij 里的默认 shell（sh 没有补全和更好的行编辑），openssh-client 给局域网 SSH 用，curl 给入口脚本核对令牌。
-RUN apk add --no-cache bash openssh-client curl \
+RUN apk add --no-cache bash openssh-client curl python3 \
   && case "$TARGETARCH" in \
     amd64) target=x86_64; sha="$ZELLIJ_SHA256_AMD64" ;; \
     arm64) target=aarch64; sha="$ZELLIJ_SHA256_ARM64" ;; \
@@ -28,11 +28,11 @@ RUN apk add --no-cache bash openssh-client curl \
   && rm "/tmp/$file"
 
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY default.conf.template landing.html /opt/wonton/
+COPY default.conf.template landing.html server.py shell.sh /opt/wonton/
 COPY entrypoint.sh init.sh /opt/wonton/
 # 容器以宿主上任意 PUID:PGID 跑，Bash 和 Zellij 要按 uid 查用户名：入口脚本临时把这两行补进去，
 # 所以镜像里的 passwd 和 group 得让普通用户可写。
-RUN chmod 0555 /opt/wonton/entrypoint.sh /opt/wonton/init.sh \
+RUN chmod 0555 /opt/wonton/entrypoint.sh /opt/wonton/init.sh /opt/wonton/server.py /opt/wonton/shell.sh \
   && chmod 0666 /etc/passwd /etc/group
 
 # 容器以 PUID:PGID 运行，master 进程不是 root，pid 和临时路径放在 /tmp。

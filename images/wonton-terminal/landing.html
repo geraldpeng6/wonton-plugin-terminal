@@ -15,6 +15,7 @@
         --field: var(--color-background-secondary, #ffffff);
         --accent: var(--wonton-accent-fill, #0071e3);
         --accent-ink: var(--wonton-accent-ink-on-fill, #ffffff);
+        --danger: var(--color-text-danger, #d70015);
         --radius: var(--border-radius-md, 10px);
     }
     * { box-sizing: border-box; }
@@ -31,84 +32,128 @@
     .label { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
     .row { display: flex; gap: 8px; align-items: stretch; }
     code {
-        flex: 1;
-        min-width: 0;
-        padding: 10px 12px;
-        background: var(--field);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
+        flex: 1; min-width: 0; padding: 10px 12px;
+        background: var(--field); border: 1px solid var(--line); border-radius: var(--radius);
         font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-        overflow-wrap: anywhere;
-        -webkit-user-select: all;
-        user-select: all;
+        overflow-wrap: anywhere; -webkit-user-select: all; user-select: all;
     }
     button {
-        flex: none;
-        padding: 0 14px;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: var(--field);
-        color: var(--fg);
-        font: inherit;
-        cursor: pointer;
+        flex: none; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius);
+        background: var(--field); color: var(--fg); font: inherit; cursor: pointer;
     }
-    button:active { opacity: .6; }
-    button:disabled { opacity: .4; cursor: default; }
-    #enter { background: var(--accent); border-color: transparent; color: var(--accent-ink); font-weight: 600; padding: 12px 18px; width: 100%; margin-top: 12px; }
-    #status { min-height: 1.45em; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
-    #status.error { color: var(--color-text-danger, #d70015); }
-    details { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; }
+    button[disabled] { opacity: .45; cursor: default; }
+    button.primary { background: var(--accent); border-color: transparent; color: var(--accent-ink); font-weight: 600; }
+    input {
+        flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--line);
+        border-radius: var(--radius); background: var(--field); color: var(--fg); font: inherit;
+    }
+    #port { flex: none; width: 6.5rem; }
+    #connect { width: 100%; padding: 12px 18px; margin-top: 12px; }
+    .section { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    #status { min-height: 2.6em; margin: 12px 0 0; font-size: 13px; }
+    #status.error { color: var(--danger); }
+    details { margin-top: 10px; }
     summary { cursor: pointer; font-size: 13px; color: var(--muted); }
-    details p { margin: 12px 0 8px; font-size: 13px; color: var(--muted); }
-    .hint { margin: 24px 0 0; font-size: 12px; color: var(--muted); }
+    pre {
+        margin: 8px 0 0; padding: 10px 12px; background: var(--field); border: 1px solid var(--line);
+        border-radius: var(--radius); font-size: 11px; line-height: 1.35; white-space: pre-wrap;
+        overflow-wrap: anywhere; max-height: 12rem; overflow: auto;
+    }
 </style>
 </head>
 <body>
 <main>
+    <input type="hidden" id="token" value="__TOKEN__">
     <h1>终端</h1>
 
-    <p class="label">登录令牌 · Login token</p>
+    <p class="label">宿主 · Host</p>
     <div class="row">
-        <code id="token">__TOKEN__</code>
-        <button id="copy" type="button">复制</button>
+        <input id="host" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="192.0.2.10">
+        <input id="port" inputmode="numeric" value="22" aria-label="端口">
     </div>
-    <button id="enter" type="button">进入</button>
-    <p id="status" role="status"></p>
+    <p class="muted" id="fingerprint"></p>
 
-    <details>
-        <summary>SSH 公钥</summary>
-        <p>把这行加到目标主机的 <code style="padding:0;border:0;background:none">~/.ssh/authorized_keys</code>。私钥只在这个插件的卷里，首次连接时核对主机指纹。</p>
-        <div class="row">
-            <code id="pubkey">__PUBKEY__</code>
-            <button id="copy-key" type="button">复制</button>
-        </div>
+    <p class="label" style="margin-top:20px">root 的公钥 · Authorized key</p>
+    <div class="row">
+        <code id="pubkey">__PUBKEY__</code>
+        <button id="copy-key" type="button">复制</button>
+    </div>
+
+    <p class="label" style="margin-top:16px">在宿主 root 上执行 · Run as root on the host</p>
+    <div class="row">
+        <code id="addkey">__ADDKEY__</code>
+        <button id="copy-cmd" type="button">复制</button>
+    </div>
+
+    <button id="connect" class="primary" type="button">连接</button>
+    <p id="status" role="status"></p>
+    <details id="detail-box" hidden>
+        <summary>详情</summary>
+        <pre id="detail"></pre>
     </details>
 
-    <p class="hint">令牌丢了：重装插件会重新生成（会话数据保留）。</p>
+    <div class="section">
+        <p class="label">密钥 · Key</p>
+        <div class="row">
+            <button id="test" type="button">试一次</button>
+            <button id="regenerate" type="button">重新生成</button>
+            <button id="revoke" type="button">撤销</button>
+        </div>
+        <p class="muted" style="margin-top:8px">重新生成或撤销以后，旧公钥在宿主上失效，要去宿主的 authorized_keys 里换掉。</p>
+    </div>
+
+    <p class="muted" style="margin-top:24px">以 root 登录宿主，等于把这个插件的权限等同宿主 root。公钥只在本插件的卷里。</p>
 </main>
 <script>
 (function () {
     "use strict";
-    var token = document.getElementById("token").textContent.trim();
+    var host = document.getElementById("host");
+    var port = document.getElementById("port");
+    var pubkey = document.getElementById("pubkey");
+    var addkey = document.getElementById("addkey");
     var status = document.getElementById("status");
-    var enter = document.getElementById("enter");
+    var detail = document.getElementById("detail");
+    var detailBox = document.getElementById("detail-box");
+    var fingerprint = document.getElementById("fingerprint");
+    var token = document.getElementById("token");
 
     function say(text, isError) {
-        status.textContent = text;
+        status.textContent = text || "";
         status.classList.toggle("error", Boolean(isError));
     }
 
-    async function copy(id, button) {
-        var text = document.getElementById(id).textContent.trim();
+    async function api(path, body) {
+        var response = await fetch("/wonton/api/" + path, body === undefined ? {} : {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json();
+    }
+
+    function setKey(text) {
+        pubkey.textContent = text || "";
+        addkey.textContent = text ? "echo '" + text + "' >> ~/.ssh/authorized_keys" : "";
+    }
+
+    async function load() {
+        var state = await api("state");
+        host.value = state.host || "";
+        port.value = String(state.port || 22);
+        setKey(state.public_key);
+        fingerprint.textContent = state.fingerprint ? "已信任主机指纹 " + state.fingerprint : "";
+    }
+
+    async function copy(button) {
+        var text = pubkey.textContent.trim();
         if (!text) return;
-        try {
-            await navigator.clipboard.writeText(text);
-        } catch (e) {
+        try { await navigator.clipboard.writeText(text); } catch (e) {
             var range = document.createRange();
-            range.selectNodeContents(document.getElementById(id));
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
+            range.selectNodeContents(pubkey);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
             return;
         }
         var old = button.textContent;
@@ -116,35 +161,75 @@
         setTimeout(function () { button.textContent = old; }, 1200);
     }
 
-    document.getElementById("copy").addEventListener("click", function () {
-        copy("token", this);
-    });
-    document.getElementById("copy-key").addEventListener("click", function () {
-        copy("pubkey", this);
-    });
-
-    if (!token) {
-        enter.disabled = true;
-        say("正在初始化，稍后刷新这一页。");
-        return;
+    function showResult(result) {
+        if (result.ok) {
+            say("连上了。");
+            detailBox.hidden = true;
+            if (result.fingerprint) fingerprint.textContent = "已信任主机指纹 " + result.fingerprint;
+            return true;
+        }
+        say(result.message + " " + (result.next || ""), true);
+        detail.textContent = result.detail || "";
+        detailBox.hidden = !result.detail;
+        return false;
     }
 
-    enter.addEventListener("click", async function () {
-        enter.disabled = true;
-        say("正在进入…");
+    async function save() {
         try {
-            var response = await fetch("/command/login", {
+            await api("config", { host: host.value.trim(), port: Number(port.value) || 22 });
+        } catch (e) { say("地址没存上。", true); }
+    }
+
+    document.getElementById("copy-key").addEventListener("click", function () { copy(this); });
+    document.getElementById("copy-cmd").addEventListener("click", async function () {
+        var old = this.textContent;
+        try { await navigator.clipboard.writeText(addkey.textContent); this.textContent = "已复制"; }
+        catch (e) { say("复制不了，手动选中那行。", true); }
+        var button = this;
+        setTimeout(function () { button.textContent = old; }, 1200);
+    });
+
+    document.getElementById("test").addEventListener("click", async function () {
+        await save();
+        say("正在试……");
+        try {
+            showResult(await api("test", {}));
+            await load();
+        } catch (e) { say("试不了：后端没响应。", true); }
+    });
+
+    document.getElementById("regenerate").addEventListener("click", async function () {
+        try {
+            var result = await api("key/regenerate", {});
+            setKey(result.public_key);
+            say("换了新公钥。旧的在宿主上失效，去 authorized_keys 里换掉。");
+        } catch (e) { say("重新生成失败。", true); }
+    });
+
+    document.getElementById("revoke").addEventListener("click", async function () {
+        try {
+            await api("key/revoke", {});
+            setKey("");
+            say("密钥撤销了。宿主上的那行可以删掉，要连就先生成一把。");
+        } catch (e) { say("撤销失败。", true); }
+    });
+
+    document.getElementById("connect").addEventListener("click", async function () {
+        await save();
+        say("正在连接……");
+        try {
+            if (!showResult(await api("test", {}))) return;
+            var login = await fetch("/command/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ auth_token: token, remember_me: true })
+                body: JSON.stringify({ auth_token: token.value.trim(), remember_me: true }),
             });
-            if (!response.ok) throw new Error(String(response.status));
+            if (!login.ok) return say("登录没成功，重装插件换一条令牌。", true);
             location.replace("/");
-        } catch (e) {
-            enter.disabled = false;
-            say("登录没成功。令牌可能已失效：重新装一次插件会换新的。", true);
-        }
+        } catch (e) { say("连不上后端。", true); }
     });
+
+    load().catch(function () { say("读不到状态，刷新试试。", true); });
 }());
 </script>
 </body>

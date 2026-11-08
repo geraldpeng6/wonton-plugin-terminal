@@ -2,13 +2,13 @@
 # 跟着插件走的冒烟探针。网页、身份、数据三项都真的请求插件。
 
 # 入口页出现（没有 Zellij 会话 Cookie 时 / 落到入口页），页面上有登录令牌和 SSH 公钥。
-web_assert() { local page; page="$(cat)"; grep -q '登录令牌' <<<"$page" && grep -q 'ssh-ed25519' <<<"$page"; }
+web_assert() { local page; page="$(cat)"; grep -q 'authorized_keys' <<<"$page" && grep -q 'ssh-ed25519' <<<"$page"; }
 
 # 身份就是核心网关：带主人会话能拿到入口页，而页面的令牌是真的能登录的（Zellij 回 200）。
 identity_check() {
     local page token
-    page="$(web_get /__wonton)" || { echo "取入口页失败：$page"; return 1; }
-    token="$(sed -n 's#.*id="token">\([^<]*\)</code>.*#\1#p' <<<"$page")"
+    page="$(web_get /wonton)" || { echo "取入口页失败：$page"; return 1; }
+    token="$(sed -n 's#.*id="token" value="\([^"]*\)".*#\1#p' <<<"$page")"
     [[ -n "$token" ]] || { echo "入口页里没有令牌：$(head -c 200 <<<"$page")"; return 1; }
     # 网关只认带会话的同源请求：POST 要带 jar。
     curl -sS --noproxy '*' -b "$SMOKE_JAR" -o /dev/null -f -H 'Content-Type: application/json' \
