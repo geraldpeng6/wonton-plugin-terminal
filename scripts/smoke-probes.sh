@@ -12,12 +12,12 @@ identity_check() {
     [[ -n "$token" ]] || { echo "入口页里没有令牌：$(head -c 200 <<<"$page")"; return 1; }
     # 网关只认带会话的同源请求：POST 要带 jar。
     curl -sS --noproxy '*' -b "$SMOKE_JAR" -o /dev/null -f -H 'Content-Type: application/json' \
-        -d "{\"auth_token\":\"$token\"}" "$SMOKE_WEB_URL/command/login" ||
+        -d "{\"auth_token\":\"$token\"}" "${SMOKE_WEB_URL%/}/command/login" ||
         {
             echo "页面里的令牌登录不了 Zellij"
             echo "页面令牌=$token"
             docker exec -u 0 "$(web_container)" sh -c 'printf "文件令牌="; cat /data/state/token; echo; zellij web --list-tokens; printf "页面="; head -c 80 /tmp/landing.html' 2>&1
-            curl -sS --noproxy '*' -b "$SMOKE_JAR" -H 'Content-Type: application/json' -d "{\"auth_token\":\"$token\"}" "$SMOKE_WEB_URL/command/login" 2>&1
+            curl -sS --noproxy '*' -b "$SMOKE_JAR" -H 'Content-Type: application/json' -d "{\"auth_token\":\"$token\"}" "${SMOKE_WEB_URL%/}/command/login" 2>&1
             return 1
         }
 }
