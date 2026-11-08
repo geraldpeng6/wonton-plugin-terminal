@@ -28,7 +28,7 @@ services:
       start_interval: 1s
 
 x-wonton:
-  spec: "0.9"
+  spec: "0.11"
   id: dev.zellij.terminal
   version: 0.2.0
   kind: app
@@ -80,6 +80,11 @@ x-wonton:
       path: /
       # 终端要整屏：全屏打开，内容由 App 让开状态栏和 Home 条（inset）。
       display: fullscreen
+    - id: connect
+      title: { zh: 连接, en: Connect }
+      icon: tabs/key.svg
+      icon_selected: tabs/key-fill.svg
+      path: /wonton
   permissions: [network.egress]
   requirements:
     arch: [amd64, arm64]
