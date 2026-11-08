@@ -4,7 +4,7 @@ services:
   # Zellij 的网页终端，前面是容器内的 nginx：Zellij 只听 127.0.0.1:8082，nginx 在 8080 上接核心网关的请求，
   # 两者同一个网络命名空间。数据卷放 Zellij 的会话快照、令牌库和 SSH 密钥。
   web:
-    image: ghcr.io/geraldpeng6/wonton-terminal:0.1.0@sha256:37eeef1f7a41dcb40b668013fc1bcca8e4ae06fae462409cc982601a2170aa0b
+    image: ghcr.io/geraldpeng6/wonton-terminal:0.1.1@sha256:295439dbc3346646b9d91ead90998adbbf8699a61a5966ac96cb35f0b14e4a3b
     user: "${PUID}:${PGID}"
     # ssh 到局域网主机、会话里跑的程序要出网：内部网络到不了外网和局域网。
     # 声明 network.egress 后，核心的出口代理变量也会注入进来，ssh 自己不读它们，走直连。
