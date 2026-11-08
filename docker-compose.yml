@@ -28,9 +28,9 @@ services:
       start_interval: 1s
 
 x-wonton:
-  spec: "0.6"
+  spec: "0.7"
   id: dev.zellij.terminal
-  version: 0.1.0
+  version: 0.1.1
   kind: app
   title: { en: Zellij }
   description:
@@ -65,8 +65,8 @@ x-wonton:
 
       The container runs an ordinary user, without host root or the Docker socket.
   release_notes:
-    zh: 第一个版本：网页终端、会话恢复、局域网 SSH。
-    en: "First version: web terminal, session restore, LAN SSH."
+    zh: 清单补 pids_limit，spec 跟到 0.7；商店截图换成 iOS 模拟器的。
+    en: "Manifest gains pids_limit and spec 0.7; store screenshot from the iOS simulator."
   webui:
     service: web
     port: 8080
