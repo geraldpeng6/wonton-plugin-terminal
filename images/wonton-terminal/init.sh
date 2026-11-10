@@ -26,8 +26,10 @@ token_valid() {
 render() {
     [ -s "$key.pub" ] || ssh-keygen -y -f "$key" >"$key.pub"
     # 值里可能带 |，模板里的占位符不会。
+    pubkey="$(cat "$key.pub")"
     sed -e "s|__TOKEN__|$(cat "$token_file")|" \
-        -e "s|__PUBKEY__|$(cat "$key.pub")|" \
+        -e "s|__PUBKEY__|$pubkey|" \
+        -e "s|__ADDKEY__|echo '$pubkey' >> ~/.ssh/authorized_keys|" \
         /opt/wonton/landing.html >/tmp/landing.html
 }
 

@@ -17,7 +17,7 @@ chmod 700 "$XDG_RUNTIME_DIR"
 # web server 起会话时要一个配置文件路径；只写要改的那一项，其余用 Zellij 自带默认。
 config="$XDG_CONFIG_HOME/zellij/config.kdl"
 mkdir -p "${config%/*}"
-[ -s "$config" ] || printf 'default_shell "bash"\n' >"$config"
+[ -s "$config" ] || printf 'default_shell "/opt/wonton/shell.sh"\n' >"$config"
 
 # 只认核心的地址，别的来源一律 403。核心在插件网络里固定占最后一个可用地址（规范“网络”），
 # 由自己网段的广播地址减一算出来，不靠注入变量（没声明 sso: proxy 时没有 WONTON_CORE_ADDRESS）。
@@ -34,6 +34,7 @@ sed "s|@CORE@|$core_ip|" /opt/wonton/default.conf.template >/tmp/default.conf
 # 先备好令牌、密钥和入口页，健康检查一过页面就是可用的。
 /opt/wonton/init.sh
 
+python3 /opt/wonton/server.py &
 nginx -e /dev/stderr -g 'daemon off;' &
 zellij web --start &
 zellij_pid=$!
@@ -49,5 +50,6 @@ done
 
 # 起来以后核对令牌（可能被吊销过），换了就重填页面。
 /opt/wonton/init.sh --revalidate
+printf 'authorized key: %s\n' "$(cat "$HOME/.ssh/id_ed25519.pub")"
 
 wait "$zellij_pid"

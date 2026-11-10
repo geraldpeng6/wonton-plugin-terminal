@@ -1,21 +1,39 @@
-# Zellij 终端
+# 终端
 
-服务器上的终端，在云吞的 App 或浏览器里打开。Zellij（MIT）负责会话：切到别的 App、关掉页面都能接回同一个会话，会话退出后也能恢复；手机上有触屏界面、快捷键条和屏幕键盘。连容器自己的 shell，也能从终端里 `ssh` 到局域网的其他机器。
+浏览器里的终端，连的是这台服务器本身：以 root 走宿主自己的 sshd。Zellij（MIT）管会话：切到别的 App、关掉页面都能接回同一个会话，退出后也能恢复；手机上有触屏界面、快捷键条和屏幕键盘。
 
-只给主人用：插件不注册 MCP 工具，Bot 拿不到；安装后不要打开“家人能用”，家人就打不开这个插件的网页。容器里是普通用户，没有宿主 root，不带 Docker socket。
+**等于把宿主的 root 交给这个插件。** 容器本身不加特权、不进宿主 PID 命名空间、不挂 Docker socket、不挂宿主根目录，能力全来自网络上的 ssh。
 
-## 用
+只给主人用：插件不注册 MCP 工具，Bot 拿不到；安装后不要打开“家人能用”。
 
-装好后第一次打开是入口页，上面有登录令牌和 SSH 公钥。
+## 安装
 
-- 点“进入”进终端。Zellij 用这条令牌登录，浏览器里记四周；令牌同时可以给命令行客户端用（`zellij attach https://<插件地址>/<会话> --token <令牌>`）。令牌在插件的卷里，丢了就重装一次插件换新的，会话数据保留。
-- 要去别的机器：把入口页的公钥加到目标主机的 `~/.ssh/authorized_keys`，在终端里 `ssh 用户@主机`。首次连接由 Zellij 显示主机指纹，你自己核对，没有自动信任。
+1. 装好插件，打开插件的网页。
+2. 页面上有一条 `echo 'ssh-ed25519 …' >> ~/.ssh/authorized_keys`。以 root 在宿主上执行它：
 
-会话和令牌都在插件的卷里；卸载时选删除数据才会一起删掉。
+   ```bash
+   # 在宿主上，root
+   echo 'ssh-ed25519 AAAA…插件页面上的整行' >> ~/.ssh/authorized_keys
+   ```
 
-## 网络
+   或者手动把页面上的公钥加到 root 的 `~/.ssh/authorized_keys`。
+3. 点“试一次”，连上了再点“连接”。
 
-容器要出网才能连局域网主机。装了代理的主机，插件的出网走核心配的出口代理；`ssh` 连私有网段本来就在 `NO_PROXY` 里，走直连。
+宿主地址默认是插件网络里的网关地址（也就是这台宿主），端口 22；要连别的机器就改这两项。
+
+## 连不上的三种情况
+
+页面会分开说，原始错误在“详情”里：
+
+| 现象 | 意思 | 下一步 |
+| --- | --- | --- |
+| 连不上 | sshd 没开或端口不对 | 在宿主上开 sshd、检查地址和端口 |
+| 公钥没加 | 宿主没认这把公钥 | 把页面上的公钥加到 root 的 `authorized_keys` |
+| 认证过了但被拒 | 多半是 `PermitRootLogin` 不让 root 登录 | 改成 `prohibit-password` 或 `yes` 后重启 sshd |
+
+## 密钥
+
+密钥是插件自己用 `ssh-keygen` 生成的，私钥只在插件的数据卷里。详情页可以撤销、重新生成；换过之后旧公钥在宿主上失效，记得去 `authorized_keys` 里换掉。主机指纹第一次连接时自己核对，不自动信任。
 
 ## 图标
 
@@ -25,4 +43,4 @@ Zellij 官方标志，来源和商标说明见 [NOTICE](NOTICE)。
 
 流程见[插件开发指南](https://github.com/geraldpeng6/wonton-docs/blob/main/develop.md)，清单和权限规则见[插件规范](https://github.com/geraldpeng6/wonton-docs/blob/main/plugin-spec.md)。
 
-镜像在 `images/wonton-terminal/`，从上游发行的二进制构建：改了 Dockerfile 就在本机构建一次（`docker build -t ghcr.io/geraldpeng6/wonton-terminal:0.1.0 images/wonton-terminal`），开发环境用本机的同名镜像。
+镜像在 `images/wonton-terminal/`，从上游发行的二进制构建：改了 Dockerfile 就在本机构建一次（`docker build -t ghcr.io/geraldpeng6/wonton-terminal:0.2.0 images/wonton-terminal`），开发环境用本机的同名镜像。

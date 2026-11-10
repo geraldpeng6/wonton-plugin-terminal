@@ -4,7 +4,7 @@ services:
   # Zellij 的网页终端，前面是容器内的 nginx：Zellij 只听 127.0.0.1:8082，nginx 在 8080 上接核心网关的请求，
   # 两者同一个网络命名空间。数据卷放 Zellij 的会话快照、令牌库和 SSH 密钥。
   web:
-    image: ghcr.io/geraldpeng6/wonton-terminal:0.1.1@sha256:295439dbc3346646b9d91ead90998adbbf8699a61a5966ac96cb35f0b14e4a3b
+    image: ghcr.io/geraldpeng6/wonton-terminal:0.2.0
     user: "${PUID}:${PGID}"
     # ssh 到局域网主机、会话里跑的程序要出网：内部网络到不了外网和局域网。
     # 声明 network.egress 后，核心的出口代理变量也会注入进来，ssh 自己不读它们，走直连。
@@ -28,17 +28,17 @@ services:
       start_interval: 1s
 
 x-wonton:
-  spec: "0.7"
+  spec: "0.11"
   id: dev.zellij.terminal
-  version: 0.1.1
+  version: 0.2.0
   kind: app
   title: { en: Zellij }
   description:
-    zh: 在浏览器里打开服务器上的终端，也能 SSH 到局域网里的其他机器
-    en: A terminal on your server in the browser, and SSH to other machines on your LAN
+    zh: 在浏览器里以 root 登录这台服务器自己的 shell
+    en: Root shell on the host itself, in the browser
   icon: icon.svg
   notices: [NOTICE]
-  screenshots: [screenshots/terminal.png, screenshots/landing.png]
+  screenshots: [screenshots/terminal.png, screenshots/terminal-dark.png, screenshots/landing.png, screenshots/landing-dark.png]
   author: { name: geraldpeng6, url: https://github.com/geraldpeng6 }
   homepage: https://zellij.dev
   license: MIT
@@ -47,26 +47,28 @@ x-wonton:
     en: [Tools, Developer]
   about:
     zh: |
-      服务器上的终端，在浏览器里用。Zellij 自己管会话：切到别的 App、关掉页面都能接回原来的会话，会话断了也能恢复。
-      手机上有专门的界面：可滚动的终端、快捷键条、窗格和标签切换、屏幕键盘。
+      浏览器里的终端，连的是这台服务器本身：以 root 走宿主自己的 sshd。插件自己生成一把专用密钥，
+      私钥只在插件卷里；装好后把入口页上的那一行命令在宿主上执行，或者手动把公钥加进 root 的
+      ~/.ssh/authorized_keys。
 
-      装好后第一次打开会给一条登录令牌和一个 SSH 公钥。令牌进终端用，也留给命令行客户端；
-      公钥加到局域网目标主机的 authorized_keys，就能从终端里 ssh 过去，主机指纹首次连接时自己核对。
+      等于把宿主的 root 交给这个插件：容器本身不加特权、不进宿主 PID、不挂 Docker socket、不挂宿主根目录，
+      只有网络上的 ssh。地址默认是宿主在插件网络里的网关，也可以自己填别的机器和端口。
 
-      容器里是普通用户，没有宿主 root，不带 Docker socket。
+      Zellij 管会话：切走再回来还在，退出也能恢复；手机上有触屏界面、快捷键条和屏幕键盘。
     en: |
-      A terminal on your server, in the browser. Zellij keeps the sessions itself: switching apps or closing the page
-      leads back to the same session, and exited sessions come back. The phone gets a dedicated interface: scrolling,
-      a key bar, pane and tab pickers, an on-screen keyboard.
+      A terminal in the browser, connected to this server itself: root over the host's own sshd. The plugin
+      generates a dedicated key whose private half stays in the plugin volume; after install, run the one
+      command on the entry page on the host, or add the public key to root's ~/.ssh/authorized_keys yourself.
 
-      The first open shows a login token and an SSH public key. The token gets you into the terminal and works with the
-      command line client; add the public key to authorized_keys on the LAN host and ssh to it from the terminal,
-      checking the host fingerprint on first connect.
-
-      The container runs an ordinary user, without host root or the Docker socket.
+      This hands the host's root to the plugin. The container itself is not privileged, shares no PID
+      namespace or Docker socket and mounts no host root: everything goes over network ssh. The address
+      defaults to the host's address on the plugin network, and you can point it at another machine or port.
+  setup:
+    zh: 在宿主上用 root 执行入口页那条 echo … >> ~/.ssh/authorized_keys（或手动加公钥）。
+    en: "As root on the host, run the echo … >> ~/.ssh/authorized_keys line from the entry page (or add the key by hand)."
   release_notes:
-    zh: 清单补 pids_limit，spec 跟到 0.7；商店截图换成 iOS 模拟器的。
-    en: "Manifest gains pids_limit and spec 0.7; store screenshot from the iOS simulator."
+    zh: 改成以 root 登录宿主本身；地址可填，连接失败分类说明，密钥可撤销和重新生成。
+    en: "Now root on the host itself; editable address, classified connection failures, revocable and regenerable key."
   webui:
     service: web
     port: 8080
@@ -78,6 +80,11 @@ x-wonton:
       path: /
       # 终端要整屏：全屏打开，内容由 App 让开状态栏和 Home 条（inset）。
       display: fullscreen
+    - id: connect
+      title: { zh: 连接, en: Connect }
+      icon: tabs/key.svg
+      icon_selected: tabs/key-fill.svg
+      path: /wonton
   permissions: [network.egress]
   requirements:
     arch: [amd64, arm64]
