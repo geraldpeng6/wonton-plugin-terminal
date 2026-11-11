@@ -41,6 +41,6 @@ Zellij 官方标志，来源和商标说明见 [NOTICE](NOTICE)。
 
 ## 开发
 
-流程见[插件开发指南](https://github.com/geraldpeng6/wonton-docs/blob/main/develop.md)，清单和权限规则见[插件规范](https://github.com/geraldpeng6/wonton-docs/blob/main/plugin-spec.md)。
+流程见[插件开发指南](https://github.com/wontonapp/wonton-docs/blob/main/develop.md)，清单和权限规则见[插件规范](https://github.com/wontonapp/wonton-docs/blob/main/plugin-spec.md)。
 
 镜像在 `images/wonton-terminal/`，从上游发行的二进制构建：改了 Dockerfile 就在本机构建一次（`docker build -t ghcr.io/geraldpeng6/wonton-terminal:0.2.0 images/wonton-terminal`），开发环境用本机的同名镜像。
