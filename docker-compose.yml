@@ -78,8 +78,7 @@ x-wonton:
       icon: tabs/terminal.svg
       icon_selected: tabs/terminal-fill.svg
       path: /
-      # 终端要整屏：全屏打开，内容由 App 让开状态栏和 Home 条（inset）。
-      display: fullscreen
+      # 终端要整屏：内容由 App 让开状态栏和 Home 条（inset）。
     - id: connect
       title: { zh: 连接, en: Connect }
       icon: tabs/key.svg
