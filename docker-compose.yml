@@ -32,10 +32,10 @@ x-wonton:
   id: dev.zellij.terminal
   version: 0.2.0
   kind: app
-  title: { en: Zellij }
+  title: { zh: 服务器命令行（Zellij）, en: Server Terminal (Zellij) }
   description:
-    zh: 在浏览器里以 root 登录这台服务器自己的 shell
-    en: Root shell on the host itself, in the browser
+    zh: 在浏览器里直接操作家里服务器的命令行，拥有最高权限：装软件、看日志、改设置都在这里。给懂命令行的人用，操作不当会影响整台服务器。
+    en: "The command line of your home server, in your browser and with full admin rights: install software, read logs, change settings. For people who know the command line — mistakes here affect the whole server."
   icon: icon.svg
   notices: [NOTICE]
   screenshots: [screenshots/terminal.png, screenshots/terminal-dark.png, screenshots/landing.png, screenshots/landing-dark.png]
@@ -47,18 +47,14 @@ x-wonton:
     en: [Tools, Developer]
   about:
     zh: |
-      浏览器里的终端，连的是这台服务器本身：以 root 走宿主自己的 sshd。插件自己生成一把专用密钥，
-      私钥只在插件卷里；装好后把入口页上的那一行命令在宿主上执行，或者手动把公钥加进 root 的
-      ~/.ssh/authorized_keys。
+      浏览器里的终端，直接连家里的服务器本身，以管理员（root）身份操作。应用会生成一把专用密钥，装好后按入口页提示，在服务器上执行一条命令完成授权（或手动把公钥加进 root 的密钥列表）。
 
       等于把宿主的 root 交给这个插件：容器本身不加特权、不进宿主 PID、不挂 Docker socket、不挂宿主根目录，
       只有网络上的 ssh。地址默认是宿主在插件网络里的网关，也可以自己填别的机器和端口。
 
       Zellij 管会话：切走再回来还在，退出也能恢复；手机上有触屏界面、快捷键条和屏幕键盘。
     en: |
-      A terminal in the browser, connected to this server itself: root over the host's own sshd. The plugin
-      generates a dedicated key whose private half stays in the plugin volume; after install, run the one
-      command on the entry page on the host, or add the public key to root's ~/.ssh/authorized_keys yourself.
+      A terminal in the browser, connected to your home server itself with administrator (root) rights. The app generates a dedicated key; after installing, run the one command shown on its entry page on the server (or add the public key by hand) to authorize it.
 
       This hands the host's root to the plugin. The container itself is not privileged, shares no PID
       namespace or Docker socket and mounts no host root: everything goes over network ssh. The address
